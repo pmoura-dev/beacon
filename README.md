@@ -14,15 +14,15 @@ go get github.com/pmoura-dev/beacon
 package main
 
 import (
-	"context"
-	"fmt"
-	"log"
-	"os/signal"
-	"syscall"
-	"time"
+    "context"
+    "fmt"
+    "log"
+    "os/signal"
+    "syscall"
+    "time"
 
-	"github.com/pmoura-dev/beacon"
-	"github.com/pmoura-dev/beacon/brokers"
+    "github.com/pmoura-dev/beacon"
+    "github.com/pmoura-dev/beacon/brokers"
 )
 
 func fooHandler(message beacon.Message) error {
@@ -31,7 +31,6 @@ func fooHandler(message beacon.Message) error {
 }
 
 func main() {
-
     ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
     defer stop()
 
@@ -43,17 +42,17 @@ func main() {
 
     _ = r.AddSubscription("foo_topic", fooHandler)
 
-	if err := r.Start(); err != nil {
-		log.Fatal(err)
-	}
+    if err := r.Start(); err != nil {
+        log.Fatal(err)
+    }
 
-	<-ctx.Done()
+    <-ctx.Done()
 
     shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+    defer cancel()
 
-	if err := r.Shutdown(shutdownCtx); err != nil {
-		log.Fatal("Error shutting down Beacon.")
-	}
+    if err := r.Shutdown(shutdownCtx); err != nil {
+        log.Fatal("Error shutting down Beacon.")
+    }
 }
 ```

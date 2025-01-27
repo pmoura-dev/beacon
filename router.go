@@ -28,7 +28,7 @@ type Router struct {
 	isRunning bool
 }
 
-func NewRouter(broker Broker, options ...OptionFunc) (*Router, error) {
+func NewRouter(broker Broker, options ...OptionFunc) *Router {
 	r := &Router{
 		broker:        broker,
 		logger:        slog.Default(),
@@ -41,7 +41,7 @@ func NewRouter(broker Broker, options ...OptionFunc) (*Router, error) {
 		opt(r)
 	}
 
-	return r, nil
+	return r
 }
 
 type OptionFunc func(*Router)

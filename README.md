@@ -36,7 +36,7 @@ func main() {
 
     mqttURL := "tcp://broker.hivemq.com:1883"
 
-    r, err := beacon.NewRouter(
+    r := beacon.NewRouter(
         brokers.NewMQTTBroker(mqttURL),
     )
 

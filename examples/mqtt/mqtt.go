@@ -12,8 +12,15 @@ import (
 	"github.com/pmoura-dev/beacon/brokers"
 )
 
-func fooHandler(message beacon.Message) error {
-	fmt.Println("received in topic bar message: ", string(message.Payload))
+func fooHandler(publisher beacon.Publisher, message beacon.Message) error {
+	fmt.Println("received in foo_topic message: ", string(message.Payload))
+
+	fmt.Println("publishing message in bar_topic ")
+	err := publisher.Publish("bar_topic", message)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

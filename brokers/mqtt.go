@@ -47,6 +47,11 @@ func (b *MQTTBroker) Subscribe(topic string) (<-chan beacon.Message, error) {
 }
 
 func (b *MQTTBroker) Publish(topic string, message beacon.Message) error {
+	token := b.client.Publish(topic, 0, false, message.Payload)
+	if token.Wait() && token.Error() != nil {
+		return token.Error()
+	}
+
 	return nil
 }
 

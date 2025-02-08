@@ -85,7 +85,7 @@ func (r *Router) startListening() {
 					r.logger.Info("Router is in shutdown phase. Stopped listening for messages.", "topic", topic)
 					return
 				case message := <-messageChan:
-					err := handler(message)
+					err := handler(r.broker, message)
 					if err != nil {
 						r.logger.Error("Error processing message.", "error", err)
 					}
@@ -146,4 +146,4 @@ type Message struct {
 	Payload       []byte
 }
 
-type HandlerFunc func(Message) error
+type HandlerFunc func(Publisher, Message) error

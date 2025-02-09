@@ -143,7 +143,9 @@ func (r *Router) Publish(topic string, message Message) {
 
 type Message struct {
 	CorrelationID string
-	Payload       []byte
+	Topic         string
+
+	Payload []byte
 }
 
 type HandlerFunc func(Publisher, Message) error

@@ -26,7 +26,7 @@ import (
 )
 
 func fooHandler(publisher beacon.Publisher, message beacon.Message) error {
-	fmt.Println("received in foo_topic message: ", string(message.Payload))
+	fmt.Printf("received message [%s] in topic [%s] ", string(message.Payload), message.Topic)
 
 	fmt.Println("publishing message in bar_topic ")
 	err := publisher.Publish("bar_topic", message)
@@ -47,7 +47,7 @@ func main() {
 		brokers.NewMQTTBroker(mqttURL),
 	)
 
-	_ = r.AddSubscription("foo_topic", fooHandler)
+	_ = r.AddSubscription("foo/+/topic", fooHandler)
 
 	if err := r.Start(); err != nil {
 		log.Fatal(err)

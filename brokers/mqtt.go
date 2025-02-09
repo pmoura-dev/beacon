@@ -61,6 +61,7 @@ func (b *MQTTBroker) Close() {
 
 func (b *MQTTBroker) toBeaconMessage(mqttMessage mqtt.Message) beacon.Message {
 	return beacon.Message{
+		Topic:   mqttMessage.Topic(),
 		Payload: mqttMessage.Payload(),
 	}
 }

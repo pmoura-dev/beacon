@@ -17,7 +17,7 @@ type Router struct {
 	broker Broker
 	logger *slog.Logger
 
-	subscriptions map[string]HandlerFunc
+	subscriptions map[*Topic]HandlerFunc
 
 	wg sync.WaitGroup
 
@@ -32,7 +32,7 @@ func NewRouter(broker Broker, options ...OptionFunc) *Router {
 	r := &Router{
 		broker:        broker,
 		logger:        slog.Default(),
-		subscriptions: make(map[string]HandlerFunc),
+		subscriptions: make(map[*Topic]HandlerFunc),
 
 		shutdownChan: make(chan struct{}),
 	}
@@ -122,14 +122,20 @@ func (r *Router) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-func (r *Router) AddSubscription(topic string, handler HandlerFunc) error {
+func (r *Router) AddSubscription(rawTopic string, handler HandlerFunc) error {
 	if r.isRunning {
-		r.logger.Error("Subscription could not be added. Router is already running.", "topic", topic)
+		r.logger.Error("Subscription could not be added. Router is already running.", "topic", rawTopic)
 		return ErrCannotAddSubscription
 	}
 
+	topic, err := NewTopic(rawTopic)
+	if err != nil {
+		r.logger.Error("Invalid topic definition.", "topic", rawTopic)
+		return err
+	}
+
 	if _, exists := r.subscriptions[topic]; exists {
-		r.logger.Error("A subscription to this topic already exists", "topic", topic)
+		r.logger.Error("A subscription to this topic already exists", "topic", rawTopic)
 		return ErrDuplicateSubscription
 	}
 
@@ -137,15 +143,13 @@ func (r *Router) AddSubscription(topic string, handler HandlerFunc) error {
 	return nil
 }
 
-func (r *Router) Publish(topic string, message Message) {
-	r.broker.Publish(topic, message)
+func (r *Router) Publish(rawTopic string, message Message) error {
+	topic, err := NewTopic(rawTopic)
+	if err != nil {
+		return err
+	}
+
+	return r.broker.Publish(topic, message)
 }
 
-type Message struct {
-	CorrelationID string
-	Topic         string
-
-	Payload []byte
-}
-
-type HandlerFunc func(Publisher, Message) error
+type HandlerFunc func(Publisher, RoutedMessage) error

@@ -9,9 +9,9 @@ type Broker interface {
 }
 
 type Subscriber interface {
-	Subscribe(topic string) (<-chan Message, error)
+	Subscribe(topic *Topic) (<-chan RoutedMessage, error)
 }
 
 type Publisher interface {
-	Publish(topic string, message Message) error
+	Publish(topic *Topic, message Message) error
 }

@@ -25,11 +25,14 @@ import (
 	"github.com/pmoura-dev/beacon/brokers"
 )
 
-func fooHandler(publisher beacon.Publisher, message beacon.Message) error {
-	fmt.Printf("received message [%s] in topic [%s] ", string(message.Payload), message.Topic)
+func fooHandler(publisher beacon.Publisher, message beacon.RoutedMessage) error {
 
-	fmt.Println("publishing message in bar_topic ")
-	err := publisher.Publish("bar_topic", message)
+	fmt.Printf("message: %s\n", string(message.Payload))
+	fmt.Printf("topic: %s\n", message.Topic.FullName())
+	fmt.Printf("param foo_id: %s\n", message.GetTopicParam("foo_id"))
+
+	pubTopic, _ := beacon.NewTopic("bar/topic")
+	err := publisher.Publish(pubTopic, beacon.Message{Payload: message.Payload})
 	if err != nil {
 		return err
 	}
@@ -47,7 +50,7 @@ func main() {
 		brokers.NewMQTTBroker(mqttURL),
 	)
 
-	_ = r.AddSubscription("foo/+/topic", fooHandler)
+	_ = r.AddSubscription("foo/{foo_id}/topic", fooHandler)
 
 	if err := r.Start(); err != nil {
 		log.Fatal(err)

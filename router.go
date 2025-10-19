@@ -14,7 +14,7 @@ var (
 )
 
 type Router struct {
-	broker Broker
+	broker *Broker
 	logger *slog.Logger
 
 	subscriptions map[*Topic]HandlerFunc
@@ -28,7 +28,7 @@ type Router struct {
 	isRunning bool
 }
 
-func NewRouter(broker Broker, options ...OptionFunc) *Router {
+func NewRouter(broker *Broker, options ...OptionFunc) *Router {
 	r := &Router{
 		broker:        broker,
 		logger:        slog.Default(),
@@ -101,7 +101,7 @@ func (r *Router) Shutdown(ctx context.Context) error {
 	r.logger.Info("Shutting down Beacon...")
 	close(r.shutdownChan)
 
-	r.broker.Disconnect()
+	_ = r.broker.Disconnect()
 
 	r.logger.Info("Waiting for in-flight messages to be processed.")
 

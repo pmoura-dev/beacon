@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"github.com/pmoura-dev/beacon"
-	"github.com/pmoura-dev/beacon/brokers"
+	"github.com/pmoura-dev/beacon/publishers"
+	"github.com/pmoura-dev/beacon/subscribers"
 )
 
 func fooHandler(publisher beacon.Publisher, message beacon.RoutedMessage) error {
@@ -31,10 +32,13 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	mqttURL := "tcp://broker.hivemq.com:1883"
+	mqttURL := "mqtt://broker.emqx.io:1883"
+
+	subscriber := subscribers.NewMQTTSubscriber(mqttURL)
+	publisher := publishers.NewMQTTPublisher(mqttURL)
 
 	r := beacon.NewRouter(
-		brokers.NewMQTTBroker(mqttURL),
+		beacon.NewBroker(subscriber, publisher),
 	)
 
 	_ = r.AddSubscription("foo/{foo_id}/topic", fooHandler)

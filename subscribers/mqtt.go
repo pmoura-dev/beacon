@@ -1,4 +1,4 @@
-package brokers
+package subscribers
 
 import (
 	"regexp"
@@ -8,44 +8,44 @@ import (
 	"github.com/pmoura-dev/beacon"
 )
 
-type MQTTBroker struct {
+type MQTTSubscriber struct {
 	client               mqtt.Client
 	qos                  byte
 	disconnectionTimeout uint // milliseconds
 }
 
-type MQTTBrokerOption func(*MQTTBroker)
+type MQTTSubscriberOption func(*MQTTSubscriber)
 
-func NewMQTTBroker(url string, options ...MQTTBrokerOption) *MQTTBroker {
+func NewMQTTSubscriber(url string, options ...MQTTSubscriberOption) *MQTTSubscriber {
 	opts := mqtt.NewClientOptions().AddBroker(url)
 	opts.SetCleanSession(true)
 
-	broker := &MQTTBroker{
+	subscriber := &MQTTSubscriber{
 		client:               mqtt.NewClient(opts),
 		qos:                  0,
 		disconnectionTimeout: 250,
 	}
 
 	for _, opt := range options {
-		opt(broker)
+		opt(subscriber)
 	}
 
-	return broker
+	return subscriber
 }
 
-func WithQOS(qos byte) func(*MQTTBroker) {
-	return func(b *MQTTBroker) {
+func WithQOS(qos byte) func(*MQTTSubscriber) {
+	return func(b *MQTTSubscriber) {
 		b.qos = qos
 	}
 }
 
-func WithDisconnectionTimeout(timeout uint) func(*MQTTBroker) {
-	return func(b *MQTTBroker) {
+func WithDisconnectionTimeout(timeout uint) func(*MQTTSubscriber) {
+	return func(b *MQTTSubscriber) {
 		b.disconnectionTimeout = timeout
 	}
 }
 
-func (b *MQTTBroker) Connect() error {
+func (b *MQTTSubscriber) Connect() error {
 	if token := b.client.Connect(); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
@@ -53,12 +53,12 @@ func (b *MQTTBroker) Connect() error {
 	return nil
 }
 
-func (b *MQTTBroker) Disconnect() error {
+func (b *MQTTSubscriber) Disconnect() error {
 	b.client.Disconnect(b.disconnectionTimeout)
 	return nil
 }
 
-func (b *MQTTBroker) Subscribe(topic *beacon.Topic) (<-chan beacon.RoutedMessage, error) {
+func (b *MQTTSubscriber) Subscribe(topic *beacon.Topic) (<-chan beacon.RoutedMessage, error) {
 	messageChan := make(chan beacon.RoutedMessage)
 
 	mqttTopic := toMQTTTopic(topic.Raw())
@@ -75,17 +75,6 @@ func (b *MQTTBroker) Subscribe(topic *beacon.Topic) (<-chan beacon.RoutedMessage
 		return nil, token.Error()
 	}
 	return messageChan, nil
-}
-
-func (b *MQTTBroker) Publish(topic *beacon.Topic, message beacon.Message) error {
-	mqttTopic := toMQTTTopic(topic.Raw())
-
-	token := b.client.Publish(mqttTopic, b.qos, false, message.Payload)
-	if token.Wait() && token.Error() != nil {
-		return token.Error()
-	}
-
-	return nil
 }
 
 func toMQTTTopic(topic string) string {

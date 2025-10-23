@@ -9,6 +9,7 @@ import (
 
 var (
 	ErrCannotAddSubscription   = errors.New("subscription can not be added")
+	ErrCannotAddMiddleware     = errors.New("middleware can not be added")
 	ErrDuplicateSubscription   = errors.New("subscription already exists")
 	ErrShutdownTimeoutExceeded = errors.New("shutdown timeout exceeded")
 )
@@ -16,6 +17,8 @@ var (
 type Router struct {
 	broker *Broker
 	logger *slog.Logger
+
+	middlewareChain Middleware
 
 	subscriptions map[*Topic]HandlerFunc
 
@@ -30,9 +33,10 @@ type Router struct {
 
 func NewRouter(broker *Broker, options ...OptionFunc) *Router {
 	r := &Router{
-		broker:        broker,
-		logger:        slog.Default(),
-		subscriptions: make(map[*Topic]HandlerFunc),
+		broker:          broker,
+		logger:          slog.Default(),
+		subscriptions:   make(map[*Topic]HandlerFunc),
+		middlewareChain: identityMiddleware,
 
 		shutdownChan: make(chan struct{}),
 	}
@@ -85,7 +89,7 @@ func (r *Router) startListening() {
 					r.logger.Info("Router is in shutdown phase. Stopped listening for messages.", "topic", topic)
 					return
 				case message := <-messageChan:
-					err := handler(r.broker, message)
+					err := r.middlewareChain(handler)(r.broker, message)
 					if err != nil {
 						r.logger.Error("Error processing message.", "error", err)
 					}
@@ -143,6 +147,21 @@ func (r *Router) AddSubscription(rawTopic string, handler HandlerFunc) error {
 	return nil
 }
 
+func (r *Router) UseMiddleware(middleware Middleware) error {
+	if r.isRunning {
+		r.logger.Error("Middleware could not be added. Router is already running.")
+		return ErrCannotAddMiddleware
+	}
+
+	prev := r.middlewareChain
+
+	r.middlewareChain = func(next HandlerFunc) HandlerFunc {
+		return middleware(prev(next))
+	}
+
+	return nil
+}
+
 func (r *Router) Publish(rawTopic string, message Message) error {
 	topic, err := NewTopic(rawTopic)
 	if err != nil {
@@ -153,3 +172,9 @@ func (r *Router) Publish(rawTopic string, message Message) error {
 }
 
 type HandlerFunc func(Publisher, RoutedMessage) error
+
+type Middleware func(next HandlerFunc) HandlerFunc
+
+func identityMiddleware(h HandlerFunc) HandlerFunc {
+	return h
+}

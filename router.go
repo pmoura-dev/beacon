@@ -89,7 +89,7 @@ func (r *Router) startListening() {
 					r.logger.Info("Router is in shutdown phase. Stopped listening for messages.", "topic", topic)
 					return
 				case message := <-messageChan:
-					err := r.middlewareChain(handler)(r.broker, message)
+					err := r.middlewareChain(handler)(context.Background(), r.broker, message)
 					if err != nil {
 						r.logger.Error("Error processing message.", "error", err)
 					}
@@ -171,7 +171,7 @@ func (r *Router) Publish(rawTopic string, message Message) error {
 	return r.broker.Publish(topic, message)
 }
 
-type HandlerFunc func(Publisher, RoutedMessage) error
+type HandlerFunc func(context.Context, Publisher, RoutedMessage) error
 
 type Middleware func(next HandlerFunc) HandlerFunc
 

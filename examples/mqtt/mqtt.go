@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"os/signal"
 	"syscall"
 	"time"
@@ -13,11 +14,12 @@ import (
 	"github.com/pmoura-dev/beacon/subscribers"
 )
 
-func fooHandler(publisher beacon.Publisher, message beacon.RoutedMessage) error {
+func fooHandler(ctx context.Context, publisher beacon.Publisher, message beacon.RoutedMessage) error {
 
 	fmt.Printf("message: %s\n", string(message.Payload))
 	fmt.Printf("topic: %s\n", message.Topic.FullName())
 	fmt.Printf("param foo_id: %s\n", message.GetTopicParam("foo_id"))
+	fmt.Printf("context value: %d\n", ctx.Value("c_value").(int))
 
 	pubTopic, _ := beacon.NewTopic("bar/topic")
 	err := publisher.Publish(pubTopic, beacon.Message{Payload: message.Payload})
@@ -29,13 +31,24 @@ func fooHandler(publisher beacon.Publisher, message beacon.RoutedMessage) error 
 }
 
 func timingMiddleware(next beacon.HandlerFunc) beacon.HandlerFunc {
-	return func(publisher beacon.Publisher, message beacon.RoutedMessage) error {
+	return func(ctx context.Context, publisher beacon.Publisher, message beacon.RoutedMessage) error {
 		startTime := time.Now()
 
-		next(publisher, message)
+		next(ctx, publisher, message)
 
 		elapsedTime := time.Since(startTime)
 		log.Printf("[%s] [%s]\n", message.Topic.FullName(), elapsedTime)
+		return nil
+	}
+}
+
+func injectMiddleware(next beacon.HandlerFunc) beacon.HandlerFunc {
+	return func(ctx context.Context, publisher beacon.Publisher, message beacon.RoutedMessage) error {
+		x := rand.IntN(100)
+		ctx = context.WithValue(ctx, "c_value", x)
+
+		next(ctx, publisher, message)
+
 		return nil
 	}
 }
@@ -56,6 +69,7 @@ func main() {
 	_ = r.AddSubscription("foo/{foo_id}/topic", fooHandler)
 
 	_ = r.UseMiddleware(timingMiddleware)
+	_ = r.UseMiddleware(injectMiddleware)
 
 	if err := r.Start(); err != nil {
 		log.Fatal(err)

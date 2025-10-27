@@ -10,6 +10,8 @@ go get github.com/pmoura-dev/beacon
 
 ## How to use
 
+This is a minimal example. For more, please check the `examples` folder.
+
 ```go
 package main
 
@@ -41,18 +43,6 @@ func fooHandler(publisher beacon.Publisher, message beacon.RoutedMessage) error 
 	return nil
 }
 
-func timingMiddleware(next beacon.HandlerFunc) beacon.HandlerFunc {
-	return func(publisher beacon.Publisher, message beacon.RoutedMessage) error {
-		startTime := time.Now()
-
-		next(publisher, message)
-
-		elapsedTime := time.Since(startTime)
-		log.Printf("[%s] [%s]\n", message.Topic.FullName(), elapsedTime)
-		return nil
-	}
-}
-
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
@@ -68,8 +58,6 @@ func main() {
 
 	_ = r.AddSubscription("foo/{foo_id}/topic", fooHandler)
 
-	_ = r.UseMiddleware(timingMiddleware)
-
 	if err := r.Start(); err != nil {
 		log.Fatal(err)
 	}
@@ -83,5 +71,4 @@ func main() {
 		log.Fatal("Error shutting down Beacon.")
 	}
 }
-
 ```
